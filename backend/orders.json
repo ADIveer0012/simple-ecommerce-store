@@ -1,0 +1,32 @@
+[
+  {
+    "userEmail": "guest@example.com",
+    "items": [
+      {
+        "id": "1",
+        "name": "Smartphone",
+        "price": 20000,
+        "description": "Latest Android smartphone with 5G",
+        "image": "images/smartphone.jpg",
+        "quantity": 1
+      }
+    ],
+    "total": 20000,
+    "date": "2026-01-12T10:46:14.522Z"
+  },
+  {
+    "userEmail": "guest@example.com",
+    "items": [
+      {
+        "id": "1",
+        "name": "Smartphone",
+        "price": 20000,
+        "description": "Latest Android smartphone with 5G",
+        "image": "images/smartphone.jpg",
+        "quantity": 1
+      }
+    ],
+    "total": 20000,
+    "date": "2026-01-13T10:58:58.143Z"
+  }
+]
