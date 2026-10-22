@@ -1,79 +1,167 @@
-/* ---------- API CONFIG ---------- */
-const API_URL = "http://localhost:5000";
+/* =========================
+   HELPERS
+========================= */
+function escapeHtml(str = "") {
+  return String(str).replace(/[&<>"']/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
 
-/* ---------- CART STORAGE ---------- */
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
+function formatPrice(n) {
+  return "₹" + Number(n).toLocaleString("en-IN");
+}
 
-/* ---------- INDEX.HTML: DISPLAY PRODUCT LIST ---------- */
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+function getUser() {
+  try {
+    return JSON.parse(localStorage.getItem("user"));
+  } catch {
+    return null;
+  }
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  window.location = "index.html";
+}
+
+/* =========================
+   NAVIGATION (Home / Cart / Login or Logout)
+========================= */
+function renderNav() {
+  const nav = document.getElementById("nav-links");
+  if (!nav) return;
+
+  const user = getUser();
+  nav.innerHTML = user
+    ? `<a href="index.html">🏠 Home</a>
+       <a href="cart.html">🛒 Cart</a>
+       <span style="font-size:15px">Hi, ${escapeHtml(user.name)}</span>
+       <a href="#" onclick="logout(); return false;">Logout</a>`
+    : `<a href="index.html">🏠 Home</a>
+       <a href="cart.html">🛒 Cart</a>
+       <a href="login.html">Login</a>`;
+}
+
+/* =========================
+   CART STORAGE
+========================= */
+function loadCart() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("cart")) || [];
+    return saved.filter(item =>
+      item && typeof item.id === "string" &&
+      Number.isInteger(item.quantity) && item.quantity > 0
+    );
+  } catch {
+    return [];
+  }
+}
+
+let cart = loadCart();
+let allProducts = [];
+
+function saveCart() {
+  localStorage.setItem("cart", JSON.stringify(cart));
+}
+
+/* =========================
+   HOME PAGE: PRODUCT LIST
+========================= */
 const productsDiv = document.getElementById("products");
 
 if (productsDiv) {
   fetch(`${API_URL}/products`)
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error("Server error");
+      return res.json();
+    })
     .then(products => {
+      allProducts = products;
       productsDiv.innerHTML = products.map(p => `
         <div class="product">
-          <img src="${p.image}" alt="${p.name}">
-          <h3>${p.name}</h3>
-          <p class="price">₹${p.price}</p>
-          <a href="product.html?id=${p.id}" class="view-btn">View</a>
+          <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}">
+          <h3>${escapeHtml(p.name)}</h3>
+          <p class="price">${formatPrice(p.price)}</p>
+          <a href="product.html?id=${encodeURIComponent(p.id)}" class="view-btn">View</a>
         </div>
       `).join("");
     })
     .catch(err => {
-      productsDiv.innerHTML = "<p>Failed to load products</p>";
+      productsDiv.innerHTML = "<p style='padding:30px'>Could not load products. Is the server running?</p>";
       console.error(err);
     });
 }
 
-/* ---------- PRODUCT.HTML: DISPLAY PRODUCT DETAILS ---------- */
-/* ---------- PRODUCT.HTML: DISPLAY PRODUCT DETAILS ---------- */
+/* =========================
+   PRODUCT PAGE: DETAILS
+========================= */
 const productDiv = document.getElementById("product");
 
 if (productDiv) {
-  const params = new URLSearchParams(window.location.search);
-  const pid = params.get("id");
+  const pid = new URLSearchParams(window.location.search).get("id");
 
   fetch(`${API_URL}/products`)
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error("Server error");
+      return res.json();
+    })
     .then(products => {
+      allProducts = products;
       const p = products.find(item => String(item.id) === String(pid));
 
-      if (p) {
-        productDiv.innerHTML = `
-          <img src="${p.image}" class="detail-img" alt="${p.name}">
-          <h2>${p.name}</h2>
-          <p>${p.description}</p>
-          <p class="price">₹${p.price}</p>
-          <button onclick='addToCart(${JSON.stringify(p)})'>Add to Cart</button>
-        `;
-      } else {
+      if (!p) {
         productDiv.innerHTML = "<p>Product not found</p>";
+        return;
       }
+
+      productDiv.innerHTML = `
+        <img src="${escapeHtml(p.image)}" class="detail-img" alt="${escapeHtml(p.name)}">
+        <h2>${escapeHtml(p.name)}</h2>
+        <p>${escapeHtml(p.description)}</p>
+        <p class="price">${formatPrice(p.price)}</p>
+        <button onclick="addToCart('${escapeHtml(p.id)}')">Add to Cart</button>
+      `;
     })
     .catch(err => {
-      console.error("Fetch error:", err);
-      productDiv.innerHTML = "<p>Error loading product</p>";
+      console.error(err);
+      productDiv.innerHTML = "<p>Error loading product. Is the server running?</p>";
     });
 }
 
+/* =========================
+   ADD TO CART
+========================= */
+function addToCart(productId) {
+  const product = allProducts.find(p => String(p.id) === String(productId));
+  if (!product) return;
 
-/* ---------- ADD TO CART ---------- */
-function addToCart(product) {
   const existing = cart.find(item => item.id === product.id);
 
   if (existing) {
     existing.quantity += 1;
   } else {
-    cart.push({ ...product, quantity: 1 });
+    cart.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      description: product.description,
+      image: product.image,
+      quantity: 1
+    });
   }
 
-  localStorage.setItem("cart", JSON.stringify(cart));
+  saveCart();
   alert(`${product.name} added to cart!`);
-  renderCart();
 }
 
-/* ---------- CART.HTML: DISPLAY CART ---------- */
+/* =========================
+   CART PAGE
+========================= */
 const cartDiv = document.getElementById("cart");
 const totalDiv = document.getElementById("total");
 
@@ -81,7 +169,7 @@ function renderCart() {
   if (!cartDiv) return;
 
   if (cart.length === 0) {
-    cartDiv.innerHTML = "<p>Your cart is empty.</p>";
+    cartDiv.innerHTML = "<p style='text-align:center'>Your cart is empty.</p>";
     totalDiv.innerText = "";
     return;
   }
@@ -89,11 +177,12 @@ function renderCart() {
   cartDiv.innerHTML = cart.map((item, index) => `
     <div class="cart-item" style="display:flex; justify-content:space-between; margin-bottom:15px;">
       <div style="display:flex; gap:10px;">
-        <img src="${item.image}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}"
+             style="width:80px;height:80px;object-fit:cover;border-radius:6px;">
         <div>
-          <h4>${item.name}</h4>
-          <p>${item.description}</p>
-          <p><b>₹${item.price} x ${item.quantity} = ₹${item.price * item.quantity}</b></p>
+          <h4>${escapeHtml(item.name)}</h4>
+          <p>${escapeHtml(item.description)}</p>
+          <p><b>${formatPrice(item.price)} x ${item.quantity} = ${formatPrice(item.price * item.quantity)}</b></p>
         </div>
       </div>
       <div>
@@ -105,13 +194,12 @@ function renderCart() {
   `).join("");
 
   const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  totalDiv.innerText = `Total: ₹${totalPrice}`;
+  totalDiv.innerText = `Total: ${formatPrice(totalPrice)}`;
 }
 
-/* ---------- QUANTITY HANDLERS ---------- */
 function increaseQuantity(index) {
-  cart[index].quantity++;
-  localStorage.setItem("cart", JSON.stringify(cart));
+  if (cart[index].quantity < 99) cart[index].quantity++;
+  saveCart();
   renderCart();
 }
 
@@ -121,48 +209,80 @@ function decreaseQuantity(index) {
   } else {
     cart.splice(index, 1);
   }
-  localStorage.setItem("cart", JSON.stringify(cart));
+  saveCart();
   renderCart();
 }
 
-/* ---------- REMOVE ITEM ---------- */
 function removeFromCart(index) {
   cart.splice(index, 1);
-  localStorage.setItem("cart", JSON.stringify(cart));
+  saveCart();
   renderCart();
 }
 
-/* ---------- CHECKOUT ---------- */
-function checkout() {
+/* =========================
+   CHECKOUT (login required, server calculates the real total)
+========================= */
+let placingOrder = false;
+
+async function checkout() {
+  if (placingOrder) return;
+
   if (cart.length === 0) {
     alert("Your cart is empty!");
     return;
   }
 
-  const orderData = {
-    userEmail: "guest@example.com", // later replace with logged-in user
-    items: cart,
-    total: cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  };
+  if (!getToken()) {
+    alert("Please log in to place your order.");
+    localStorage.setItem("redirectAfterLogin", "cart.html");
+    window.location = "login.html";
+    return;
+  }
 
-  fetch(`${API_URL}/order`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(orderData)
-  })
-    .then(res => res.json())
-    .then(data => {
-      alert(data.message);
-      cart = [];
-      localStorage.setItem("cart", JSON.stringify(cart));
-      renderCart();
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Failed to place order");
+  placingOrder = true;
+
+  try {
+    const res = await fetch(`${API_URL}/order`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        items: cart.map(item => ({ id: item.id, quantity: item.quantity }))
+      })
     });
+
+    const data = await res.json();
+
+    if (res.status === 401) {
+      alert(data.message || "Please log in again.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.setItem("redirectAfterLogin", "cart.html");
+      window.location = "login.html";
+      return;
+    }
+
+    if (!res.ok) {
+      alert(data.message || "Could not place order");
+      return;
+    }
+
+    alert(`${data.message}\nTotal: ${formatPrice(data.total)}`);
+    cart = [];
+    saveCart();
+    renderCart();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to place order. Is the server running?");
+  } finally {
+    placingOrder = false;
+  }
 }
-/* ---------- INITIAL RENDER ---------- */
+
+/* =========================
+   INITIAL RENDER
+========================= */
+renderNav();
 renderCart();

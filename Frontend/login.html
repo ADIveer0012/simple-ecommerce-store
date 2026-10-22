@@ -12,9 +12,10 @@
     <h2>Welcome Back 👋</h2>
     <p>Login to continue shopping</p>
 
-    <form>
-      <input type="email" placeholder="Email" required>
-      <input type="password" placeholder="Password" required>
+    <form id="login-form">
+      <input id="email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+      <p id="form-message" style="color:#dc2626; font-size:14px; min-height:20px;"></p>
       <button type="submit">Login</button>
     </form>
 
@@ -23,5 +24,10 @@
     </span>
   </div>
 
+  <!-- API address (must load before auth.js) -->
+  <script src="js/config.js"></script>
+
+  <!-- Login logic -->
+  <script src="js/auth.js"></script>
 </body>
 </html>

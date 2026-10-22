@@ -12,11 +12,12 @@
     <h2>Create Account 👋</h2>
     <p>Sign up to start shopping</p>
 
-    <form>
-      <input type="text" placeholder="Full Name" required>
-      <input type="email" placeholder="Email" required>
-      <input type="password" placeholder="Password" required>
-      <input type="password" placeholder="Confirm Password" required>
+    <form id="register-form">
+      <input id="name" type="text" placeholder="Full Name" autocomplete="name" minlength="2" maxlength="60" required>
+      <input id="email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="password" type="password" placeholder="Password (min 6 characters)" autocomplete="new-password" minlength="6" required>
+      <input id="confirm" type="password" placeholder="Confirm Password" autocomplete="new-password" required>
+      <p id="form-message" style="color:#dc2626; font-size:14px; min-height:20px;"></p>
       <button type="submit">Register</button>
     </form>
 
@@ -25,5 +26,10 @@
     </span>
   </div>
 
+  <!-- API address (must load before auth.js) -->
+  <script src="js/config.js"></script>
+
+  <!-- Register logic -->
+  <script src="js/auth.js"></script>
 </body>
 </html>

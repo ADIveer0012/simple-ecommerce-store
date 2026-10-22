@@ -10,13 +10,17 @@
 
 <header>
   <h1>Simple E-Commerce Store</h1>
-  <a href="cart.html">🛒 Cart</a>
+  <nav id="nav-links" style="display:flex; gap:20px; font-size:16px; align-items:center;"></nav>
 </header>
 
 <div id="product" class="product-detail">
-  <!-- Product details will be dynamically loaded here -->
+  <!-- Product details load here -->
 </div>
 
-<script src="js/app.js" defer></script>
+<!-- API address (must load before app.js) -->
+<script src="js/config.js"></script>
+
+<!-- Store logic: product details, cart, nav -->
+<script src="js/app.js"></script>
 </body>
 </html>
